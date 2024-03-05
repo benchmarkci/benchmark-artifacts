@@ -1,0 +1,112 @@
+name: artifacts
+
+on: [push]
+
+jobs:
+  artifacts_archive_linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: download and extract package
+        run: |
+          wget -O package.tar.gz https://github.com/NixOS/nixpkgs/archive/refs/tags/23.11.tar.gz
+          mkdir package
+          tar xf package.tar.gz -C package
+
+      - name: upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-linux
+          path: |
+            package
+
+  artifacts_extract_linux:
+    needs: artifacts_archive_linux
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: package-linux
+          path: package
+
+      - name: check exists
+        run: test -d package
+
+# Windows and MacOS runners suffer from this bug, so are skipped for now: https://github.com/actions/upload-artifact/issues/485
+#
+#  artifacts_archive_windows:
+#    runs-on: windows-latest
+#    steps:
+#      - name: checkout
+#        uses: actions/checkout@v4
+#
+#      - name: download and extract package
+#        run: |
+#          $ProgressPreference = 'SilentlyContinue'
+#          Invoke-WebRequest 'https://github.com/NixOS/nixpkgs/archive/refs/tags/23.11.tar.gz' -OutFile package.tar.gz
+#          mkdir package
+#          tar xf package.tar.gz -C package
+#
+#      - name: upload artifacts
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: package-windows
+#          path: |
+#            package
+#
+#  artifacts_extract_windows:
+#    needs: artifacts_archive_windows
+#    runs-on: windows-latest
+#    steps:
+#      - name: checkout
+#        uses: actions/checkout@v4
+#
+#      - name: download artifacts
+#        uses: actions/download-artifact@v4
+#        with:
+#          name: package-windows
+#          path: package
+#
+#      - name: check exists
+#        run: test -d package
+#
+#  artifacts_archive_macos:
+#    runs-on: macos-14
+#    steps:
+#      - name: checkout
+#        uses: actions/checkout@v4
+#
+#      - name: download and extract package
+#        run: |
+#          wget -O package.tar.gz https://github.com/NixOS/nixpkgs/archive/refs/tags/23.11.tar.gz
+#          mkdir package
+#          tar xf package.tar.gz -C package
+#
+#      - name: upload artifacts
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: package-macos
+#          path: |
+#            package
+#
+#  artifacts_extract_macos:
+#    needs: artifacts_archive_macos
+#    runs-on: macos-14
+#    steps:
+#      - name: checkout
+#        uses: actions/checkout@v4
+#
+#      - name: download artifacts
+#        uses: actions/download-artifact@v4
+#        with:
+#          name: package-macos
+#          path: package
+#
+#      - name: check exists
+#        run: test -d package

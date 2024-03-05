@@ -1,0 +1,236 @@
+version: 2.1
+
+.artifacts_archive_steps: &artifacts_archive_steps
+  - checkout
+
+  - run:
+      name: download and extract package
+      command: |
+        wget -O package.tar.gz https://github.com/NixOS/nixpkgs/archive/refs/tags/23.11.tar.gz
+        mkdir package
+        tar xf package.tar.gz -C package
+
+  - persist_to_workspace:
+      root: package
+      paths:
+        - ./
+
+.artifacts_extract_steps: &artifacts_extract_steps
+  - checkout
+
+  - attach_workspace:
+      at: package
+
+  - run:
+      name: check exists
+      command: |
+        ls -al
+        test -d package
+
+jobs:
+  artifacts_archive_linux_docker:
+    parameters:
+      resource_class:
+        type: string
+    docker:
+      - image: busybox:latest
+    resource_class: "<< parameters.resource_class >>"
+    steps: *artifacts_archive_steps
+
+  artifacts_extract_linux_docker:
+    parameters:
+      resource_class:
+        type: string
+
+    docker:
+      - image: busybox:latest
+    resource_class: "<< parameters.resource_class >>"
+    steps: *artifacts_extract_steps
+
+  artifacts_archive_linux_machine:
+    parameters:
+      resource_class:
+        type: string
+    machine:
+      image: ubuntu-2204:2022.10.2
+    resource_class: "<< parameters.resource_class >>"
+    steps: *artifacts_archive_steps
+
+  artifacts_extract_linux_machine:
+    parameters:
+      resource_class:
+        type: string
+    machine:
+      image: ubuntu-2204:2022.10.2
+    resource_class: "<< parameters.resource_class >>"
+    steps: *artifacts_extract_steps
+
+  artifacts_archive_windows_machine:
+    parameters:
+      resource_class:
+        type: string
+    machine:
+      image: windows-server-2022-gui:current
+      shell: powershell.exe -ExecutionPolicy Bypass
+    resource_class: "<< parameters.resource_class >>"
+    steps:
+      - checkout
+
+      - run:
+          name: download and extract package
+          command: |
+            $ProgressPreference = 'SilentlyContinue'
+            Invoke-WebRequest 'https://github.com/NixOS/nixpkgs/archive/refs/tags/23.11.tar.gz' -OutFile package.tar.gz
+            mkdir package
+            tar xf package.tar.gz -C package
+
+      - persist_to_workspace:
+          root: package
+          paths:
+            - ./
+
+  artifacts_extract_windows_machine:
+    parameters:
+      resource_class:
+        type: string
+    machine:
+      image: windows-server-2022-gui:current
+    resource_class: "<< parameters.resource_class >>"
+    steps: *artifacts_extract_steps
+
+  artifacts_archive_macos:
+    parameters:
+      resource_class:
+        type: string
+    macos:
+      xcode: 14.2.0
+    resource_class: "<< parameters.resource_class >>"
+    steps: *artifacts_archive_steps
+
+  artifacts_extract_macos:
+    parameters:
+      resource_class:
+        type: string
+    macos:
+      xcode: 14.2.0
+    resource_class: "<< parameters.resource_class >>"
+    steps: *artifacts_extract_steps
+
+workflows:
+  version: 2
+  artifacts_linux_docker_small:
+    jobs:
+      - artifacts_archive_linux_docker:
+          resource_class: small
+      - artifacts_extract_linux_docker:
+          resource_class: small
+          requires:
+            - artifacts_archive_linux_docker
+
+  artifacts_linux_docker_medium:
+    jobs:
+      - artifacts_archive_linux_docker:
+          resource_class: medium
+      - artifacts_extract_linux_docker:
+          resource_class: medium
+          requires:
+            - artifacts_archive_linux_docker
+
+  artifacts_linux_docker_medium+:
+    jobs:
+      - artifacts_archive_linux_docker:
+          resource_class: medium+
+      - artifacts_extract_linux_docker:
+          resource_class: medium+
+          requires:
+            - artifacts_archive_linux_docker
+
+  artifacts_linux_docker_large:
+    jobs:
+      - artifacts_archive_linux_docker:
+          resource_class: large
+      - artifacts_extract_linux_docker:
+          resource_class: large
+          requires:
+            - artifacts_archive_linux_docker
+
+  artifacts_linux_docker_arm.medium:
+    jobs:
+      - artifacts_archive_linux_docker:
+          resource_class: arm.medium
+      - artifacts_extract_linux_docker:
+          resource_class: arm.medium
+          requires:
+            - artifacts_archive_linux_docker
+
+  artifacts_linux_docker_arm.large:
+    jobs:
+      - artifacts_archive_linux_docker:
+          resource_class: arm.large
+      - artifacts_extract_linux_docker:
+          resource_class: arm.large
+          requires:
+            - artifacts_archive_linux_docker
+
+  artifacts_linux_machine_medium:
+    jobs:
+      - artifacts_archive_linux_machine:
+          resource_class: medium
+      - artifacts_extract_linux_machine:
+          resource_class: medium
+          requires:
+            - artifacts_archive_linux_machine
+
+  artifacts_linux_machine_large:
+    jobs:
+      - artifacts_archive_linux_machine:
+          resource_class: large
+      - artifacts_extract_linux_machine:
+          resource_class: large
+          requires:
+            - artifacts_archive_linux_machine
+
+  artifacts_linux_machine_arm.medium:
+    jobs:
+      - artifacts_archive_linux_machine:
+          resource_class: arm.medium
+      - artifacts_extract_linux_machine:
+          resource_class: arm.medium
+          requires:
+            - artifacts_archive_linux_machine
+
+  artifacts_linux_machine_arm.large:
+    jobs:
+      - artifacts_archive_linux_machine:
+          resource_class: arm.large
+      - artifacts_extract_linux_machine:
+          resource_class: arm.large
+          requires:
+            - artifacts_archive_linux_machine
+
+  artifacts_windows_machine_medium:
+    jobs:
+      - artifacts_archive_windows_machine:
+          resource_class: windows.medium
+      - artifacts_extract_windows_machine:
+          resource_class: windows.medium
+          requires:
+            - artifacts_archive_windows_machine
+
+  artifacts_windows_machine_large:
+    jobs:
+      - artifacts_archive_windows_machine:
+          resource_class: windows.large
+      - artifacts_extract_windows_machine:
+          resource_class: windows.large
+          requires:
+            - artifacts_archive_windows_machine
+
+  artifacts_macos_machine_intel:
+    jobs:
+      - artifacts_archive_macos:
+          resource_class: macos.x86.medium.gen2
+      - artifacts_extract_macos:
+          resource_class: macos.x86.medium.gen2
+          requires:
+            - artifacts_archive_macos

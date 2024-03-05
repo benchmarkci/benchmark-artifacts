@@ -1,0 +1,69 @@
+stages:
+  - artifacts_test
+
+.artifacts_archive:
+  stage: artifacts_test
+  script:
+    - wget -O package.tar.gz https://github.com/NixOS/nixpkgs/archive/refs/tags/23.11.tar.gz
+    - mkdir package
+    - tar xf package.tar.gz -C package
+  artifacts:
+    paths:
+      - package
+
+.artifacts_extract:
+  stage: artifacts_test
+  script:
+    - test -d package
+
+artifacts_archive_linux_small:
+  tags: [ saas-linux-small-amd64 ]
+  image: busybox:latest
+  extends: .artifacts_archive
+
+artifacts_extract_linux_small:
+  tags: [ saas-linux-small-amd64 ]
+  needs:
+    - job: artifacts_archive_linux_small
+      artifacts: true
+  image: busybox:latest
+  extends: .artifacts_extract
+
+artifacts_archive_linux_medium:
+  tags: [ saas-linux-medium-amd64 ]
+  image: busybox:latest
+  extends: .artifacts_archive
+
+artifacts_extract_linux_medium:
+  tags: [ saas-linux-medium-amd64 ]
+  needs:
+    - job: artifacts_archive_linux_medium
+      artifacts: true
+  image: busybox:latest
+  extends: .artifacts_extract
+
+artifacts_archive_windows_medium:
+  tags: [ saas-windows-medium-amd64 ]
+  extends: .artifacts_archive
+
+artifacts_extract_windows_medium:
+  tags: [ saas-windows-medium-amd64 ]
+  needs:
+    - job: artifacts_archive_windows_medium
+      artifacts: true
+  extends: .artifacts_extract
+  script:
+    - Test-Path -Path package
+
+artifacts_archive_macos_medium:
+  tags: [ saas-macos-medium-m1 ]
+  image: macos-14-xcode-15
+  extends: .artifacts_archive
+
+artifacts_extract_macos_medium:
+  tags: [ saas-macos-medium-m1 ]
+  needs:
+    - job: artifacts_archive_macos_medium
+      artifacts: true
+  image: macos-14-xcode-15
+  extends: .artifacts_extract
